@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wavelength – Interactive Music Theory</title>
+    <meta name="description" content="Explore music theory through beautiful, interactive visualizations of scales, chords, and the circle of fifths.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts - Distinctive typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root {
+            --warm-black: #1a1612;
+            --cream: #f5f1e8;
+            --gold: #d4a574;
+            --rust: #c67b5c;
+            --sage: #8b9d83;
+            --charcoal: #2d2a26;
+            --bronze: #b87333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--warm-black);
+            color: var(--cream);
+            overflow-x: hidden;
+        }
+        
+        .playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        /* Art Deco geometric background */
+        .deco-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 35px, var(--gold) 35px, var(--gold) 36px),
+                repeating-linear-gradient(-45deg, transparent, transparent 35px, var(--gold) 35px, var(--gold) 36px);
+        }
+        
+        /* Header styling */
+        header {
+            position: relative;
+            padding: 3rem 2rem;
+            text-align: center;
+            border-bottom: 2px solid var(--gold);
+            background: linear-gradient(180deg, var(--charcoal) 0%, var(--warm-black) 100%);
+        }
+        
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--bronze) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--cream);
+            opacity: 0.8;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        
+        /* Main container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Tool selector */
+        .tool-nav {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 3rem;
+        }
+        
+        .tool-btn {
+            padding: 1rem 2rem;
+            background: var(--charcoal);
+            border: 2px solid var(--gold);
+            color: var(--cream);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gold);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+        
+        .tool-btn:hover::before,
+        .tool-btn.active::before {
+            left: 0;
+        }
+        
+        .tool-btn:hover,
+        .tool-btn.active {
+            color: var(--warm-black);
+            transform: translateY(-2px);
+        }
+        
+        /* Circle of Fifths */
+        .circle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 3rem 0;
+        }
+        
+        .circle-of-fifths {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .note-segment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .note-segment:hover .note-label {
+            transform: scale(1.15);
+            font-weight: 700;
+        }
+        
+        .note-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--cream);
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        
+        /* Piano keyboard */
+        .piano {
+            display: flex;
+            justify-content: center;
+            margin: 3rem auto;
+            width: fit-content;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: slideUp 0.8s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .piano-keys {
+            display: flex;
+            position: relative;
+        }
+        
+        .key {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .white-key {
+            width: 60px;
+            height: 240px;
+            background: linear-gradient(180deg, #fafafa 0%, #e8e8e8 100%);
+            border: 2px solid var(--charcoal);
+            border-radius: 0 0 8px 8px;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 1rem;
+        }
+        
+        .white-key:hover {
+            background: linear-gradient(180deg, #f0f0f0 0%, #d8d8d8 100%);
+            transform: translateY(2px);
+        }
+        
+        .white-key.active {
+            background: var(--gold);
+            transform: translateY(3px);
+        }
+        
+        .black-key {
+            position: absolute;
+            width: 40px;
+            height: 150px;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 2px solid #000;
+            border-radius: 0 0 6px 6px;
+            z-index: 2;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 0.75rem;
+        }
+        
+        .black-key:hover {
+            background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+            transform: translateY(2px);
+        }
+        
+        .black-key.active {
+            background: var(--rust);
+            transform: translateY(3px);
+        }
+        
+        .note-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+        
+        .black-key .note-name {
+            color: var(--cream);
+            font-size: 0.75rem;
+        }
+        
+        /* Scale selector */
+        .scale-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .scale-card {
+            background: var(--charcoal);
+            border: 2px solid var(--gold);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scale-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--rust);
+            transition: width 0.3s ease;
+        }
+        
+        .scale-card:hover::before {
+            width: 100%;
+            opacity: 0.1;
+        }
+        
+        .scale-card:hover {
+            transform: translateX(8px);
+            border-color: var(--rust);
+        }
+        
+        .scale-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .scale-notes {
+            font-size: 0.9rem;
+            color: var(--cream);
+            opacity: 0.7;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Info panel */
+        .info-panel {
+            background: linear-gradient(135deg, var(--charcoal) 0%, var(--warm-black) 100%);
+            border: 2px solid var(--gold);
+            padding: 2rem;
+            margin: 3rem 0;
+            border-radius: 4px;
+            animation: fadeIn 0.8s ease-out 0.2s backwards;
+        }
+        
+        .info-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+        
+        .info-content {
+            line-height: 1.8;
+            color: var(--cream);
+            opacity: 0.9;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            border-top: 2px solid var(--gold);
+            margin-top: 4rem;
+            background: var(--charcoal);
+        }
+        
+        .footer-text {
+            color: var(--cream);
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+        
+        /* Tool sections */
+        .tool-section {
+            display: none;
+        }
+        
+        .tool-section.active {
+            display: block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .circle-of-fifths {
+                width: 350px;
+                height: 350px;
+            }
+            
+            .white-key {
+                width: 40px;
+                height: 180px;
+            }
+            
+            .black-key {
+                width: 28px;
+                height: 110px;
+            }
+            
+            .tool-btn {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="deco-bg"></div>
+    
+    <header>
+        <h1 class="logo playfair">WAVELENGTH</h1>
+        <p class="tagline">Interactive Music Theory</p>
+    </header>
+    
+    <div class="container">
+        <nav class="tool-nav">
+            <button class="tool-btn active" data-tool="circle">Circle of Fifths</button>
+            <button class="tool-btn" data-tool="piano">Piano & Scales</button>
+            <button class="tool-btn" data-tool="chords">Chord Builder</button>
+        </nav>
+        
+        <!-- Circle of Fifths Tool -->
+        <section id="circle-tool" class="tool-section active">
+            <div class="info-panel">
+                <h2 class="info-title playfair">The Circle of Fifths</h2>
+                <p class="info-content">
+                    A visual representation of the relationships between the 12 tones of the chromatic scale. 
+                    Each step clockwise moves up a perfect fifth, while counterclockwise moves down a fifth. 
+                    This elegant diagram reveals key signatures, relative majors and minors, and harmonic connections.
+                </p>
+            </div>
+            
+            <div class="circle-container">
+                <svg class="circle-of-fifths" viewBox="0 0 500 500">
+                    <!-- Outer circle for major keys -->
+                    <circle cx="250" cy="250" r="230" fill="none" stroke="var(--gold)" stroke-width="2"/>
+                    <circle cx="250" cy="250" r="180" fill="none" stroke="var(--rust)" stroke-width="2"/>
+                    <circle cx="250" cy="250" r="130" fill="none" stroke="var(--sage)" stroke-width="2"/>
+                    
+                    <!-- Notes will be added dynamically -->
+                    <g id="notes-container"></g>
+                </svg>
+            </div>
+        </section>
+        
+        <!-- Piano & Scales Tool -->
+        <section id="piano-tool" class="tool-section">
+            <div class="info-panel">
+                <h2 class="info-title playfair">Piano & Scales</h2>
+                <p class="info-content">
+                    Explore different musical scales on the piano keyboard. Select a root note and scale type 
+                    to visualize the pattern. Each scale creates a unique mood and character in music.
+                </p>
+            </div>
+            
+            <div class="piano">
+                <div class="piano-keys" id="piano-keys">
+                    <!-- Piano keys will be generated dynamically -->
+                </div>
+            </div>
+            
+            <div class="scale-selector" id="scale-selector">
+                <!-- Scale options will be populated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Chord Builder Tool -->
+        <section id="chords-tool" class="tool-section">
+            <div class="info-panel">
+                <h2 class="info-title playfair">Chord Builder</h2>
+                <p class="info-content">
+                    Build and explore chord structures. Understanding chords is fundamental to harmony. 
+                    Select a root note and chord type to see and hear the notes that create different harmonic colors.
+                </p>
+            </div>
+            
+            <div class="piano">
+                <div class="piano-keys" id="chord-piano-keys">
+                    <!-- Piano keys for chords -->
+                </div>
+            </div>
+            
+            <div class="scale-selector" id="chord-selector">
+                <!-- Chord options will be populated dynamically -->
+            </div>
+        </section>
+    </div>
+    
+    <footer>
+        <p class="footer-text">
+            Wavelength – An exploration of music theory through interactive visualization<br>
+            Created with passion for music and design
+        </p>
+    </footer>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Music theory data
+        const notes = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯', 'C♯', 'G♯', 'E♭', 'B♭', 'F'];
+        const circleOfFifths = ['C', 'G', 'D', 'A', 'E', 'B', 'F♯/G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F'];
+        
+        const pianoNotes = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+        
+        const scales = {
+            'Major': [0, 2, 4, 5, 7, 9, 11],
+            'Minor': [0, 2, 3, 5, 7, 8, 10],
+            'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11],
+            'Pentatonic Major': [0, 2, 4, 7, 9],
+            'Pentatonic Minor': [0, 3, 5, 7, 10],
+            'Blues': [0, 3, 5, 6, 7, 10],
+            'Dorian': [0, 2, 3, 5, 7, 9, 10],
+            'Phrygian': [0, 1, 3, 5, 7, 8, 10],
+            'Lydian': [0, 2, 4, 6, 7, 9, 11],
+            'Mixolydian': [0, 2, 4, 5, 7, 9, 10]
+        };
+        
+        const chords = {
+            'Major': [0, 4, 7],
+            'Minor': [0, 3, 7],
+            'Diminished': [0, 3, 6],
+            'Augmented': [0, 4, 8],
+            'Major 7th': [0, 4, 7, 11],
+            'Minor 7th': [0, 3, 7, 10],
+            'Dominant 7th': [0, 4, 7, 10],
+            'Sus2': [0, 2, 7],
+            'Sus4': [0, 5, 7]
+        };
+        
+        // Tool navigation
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active button
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Show corresponding tool
+                const tool = btn.dataset.tool;
+                document.querySelectorAll('.tool-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`${tool}-tool`).classList.add('active');
+            });
+        });
+        
+        // Draw Circle of Fifths
+        function drawCircleOfFifths() {
+            const container = document.getElementById('notes-container');
+            const colors = ['#d4a574', '#c67b5c', '#8b9d83', '#d4a574', '#c67b5c', '#8b9d83', '#d4a574', '#c67b5c', '#8b9d83', '#d4a574', '#c67b5c', '#8b9d83'];
+            
+            circleOfFifths.forEach((note, index) => {
+                const angle = (index * 30 - 90) * (Math.PI / 180);
+                const radius = 200;
+                const x = 250 + radius * Math.cos(angle);
+                const y = 250 + radius * Math.sin(angle);
+                
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.classList.add('note-segment');
+                
+                // Create circle for note
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', '35');
+                circle.setAttribute('fill', colors[index]);
+                circle.setAttribute('opacity', '0.8');
+                
+                // Create text for note
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('class', 'note-label');
+                text.setAttribute('fill', '#1a1612');
+                text.setAttribute('font-size', '24');
+                text.setAttribute('font-weight', '700');
+                text.textContent = note;
+                
+                group.appendChild(circle);
+                group.appendChild(text);
+                
+                // Add click interaction
+                group.addEventListener('click', () => {
+                    alert(`${note} - This note is ${index} fifths away from C`);
+                });
+                
+                container.appendChild(group);
+            });
+        }
+        
+        // Generate piano keyboard
+        function generatePiano(containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+            const blackKeyPositions = [1, 2, 4, 5, 6]; // Positions after which black keys appear
+            
+            whiteKeys.forEach((note, index) => {
+                const key = document.createElement('div');
+                key.classList.add('white-key', 'key');
+                key.dataset.note = note;
+                
+                const label = document.createElement('span');
+                label.classList.add('note-name');
+                label.textContent = note;
+                key.appendChild(label);
+                
+                container.appendChild(key);
+                
+                // Add black key after this white key if applicable
+                if (blackKeyPositions.includes(index + 1)) {
+                    const blackKey = document.createElement('div');
+                    blackKey.classList.add('black-key', 'key');
+                    const blackNote = note + '♯';
+                    blackKey.dataset.note = blackNote;
+                    blackKey.style.left = `${(index + 1) * 60 - 20}px`;
+                    
+                    const blackLabel = document.createElement('span');
+                    blackLabel.classList.add('note-name');
+                    blackLabel.textContent = blackNote;
+                    blackKey.appendChild(blackLabel);
+                    
+                    container.appendChild(blackKey);
+                }
+            });
+        }
+        
+        // Generate scale selector
+        function generateScaleSelector() {
+            const container = document.getElementById('scale-selector');
+            
+            Object.entries(scales).forEach(([scaleName, intervals]) => {
+                const card = document.createElement('div');
+                card.classList.add('scale-card');
+                
+                const name = document.createElement('div');
+                name.classList.add('scale-name', 'playfair');
+                name.textContent = scaleName;
+                
+                const notes = document.createElement('div');
+                notes.classList.add('scale-notes');
+                notes.textContent = `Intervals: ${intervals.join(' - ')}`;
+                
+                card.appendChild(name);
+                card.appendChild(notes);
+                
+                card.addEventListener('click', () => {
+                    highlightScale('C', intervals, 'piano-keys');
+                });
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Generate chord selector
+        function generateChordSelector() {
+            const container = document.getElementById('chord-selector');
+            
+            Object.entries(chords).forEach(([chordName, intervals]) => {
+                const card = document.createElement('div');
+                card.classList.add('scale-card');
+                
+                const name = document.createElement('div');
+                name.classList.add('scale-name', 'playfair');
+                name.textContent = chordName;
+                
+                const notes = document.createElement('div');
+                notes.classList.add('scale-notes');
+                notes.textContent = `Intervals: ${intervals.join(' - ')}`;
+                
+                card.appendChild(name);
+                card.appendChild(notes);
+                
+                card.addEventListener('click', () => {
+                    highlightScale('C', intervals, 'chord-piano-keys');
+                });
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Highlight scale on piano
+        function highlightScale(root, intervals, pianoId) {
+            const piano = document.getElementById(pianoId);
+            const keys = piano.querySelectorAll('.key');
+            
+            // Clear previous highlights
+            keys.forEach(key => key.classList.remove('active'));
+            
+            // Highlight scale notes
+            intervals.forEach(interval => {
+                const noteIndex = (pianoNotes.indexOf(root) + interval) % 12;
+                const noteName = pianoNotes[noteIndex];
+                
+                keys.forEach(key => {
+                    if (key.dataset.note === noteName) {
+                        key.classList.add('active');
+                    }
+                });
+            });
+        }
+        
+        // Initialize
+        drawCircleOfFifths();
+        generatePiano('piano-keys');
+        generatePiano('chord-piano-keys');
+        generateScaleSelector();
+        generateChordSelector();
+    </script>
+</body>
+</html>
